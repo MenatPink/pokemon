@@ -3,36 +3,115 @@ import "./App.css";
 import axios from "axios";
 
 function App() {
-  const [search, setSearch] = useState("");
-  const [data, setData] = useState("");
-  const pokeNames = [];
+  const [searchValue, setSearchValue] = useState("");
+  const [data, setData] = useState([]);
+  const [filteredPokemon, setFilteredPokemon] = useState([]);
+  const [selectedPokemon, setSelectedPokemon] = useState(null);
 
   const getData = async () => {
-    const data = await axios.get(
+    const { data } = await axios.get(
       "https://raw.githubusercontent.com/ramclen/Poke-Server/master/pokedex.json"
     );
-    setData(
-      data.data.map((entry) => {
-        return <p> {entry.profile.name}</p>;
-      })
+    const { data: pokemonInfoList } = await axios.get(
+      "https://raw.githubusercontent.com/ramclen/Poke-Server/master/descriptions.json"
     );
+
+    const { Pokedex } = data.find(
+      ({ id }) => id === "6310df942f0f59918a5c3201"
+    );
+
+    const pokedexFullDetails = Pokedex.map((data) => {
+      const pokemonData = pokemonInfoList.find(({ id }) => id === data.id);
+      return {
+        ...data,
+        ...pokemonData,
+      };
+    });
+
+    setData(pokedexFullDetails);
   };
 
-  const onSearchChange = (event) => {
-    setSearch(event.target.value);
-    console.log(data)
+  const onSearchChange = ({ target: { value } }) => {
+    setSearchValue(value);
+  };
+
+  const handleClick = (pokemon) => {
+    setSelectedPokemon(pokemon);
   };
 
   useEffect(() => {
-  console.log(getData);
+    getData();
   }, []);
 
- 
+  useEffect(() => {
+    const filter = data.filter(({ name }) =>
+      name.toLowerCase().includes(searchValue.toLowerCase())
+    );
+    setFilteredPokemon(filter);
+  }, [searchValue]);
+
   return (
     <div className="App">
       <h1>pokimon</h1>
-      <input type="search" width="150px" onChange={onSearchChange} />
-      <button></button>
+      <input
+        type="search"
+        width="150px"
+        value={searchValue}
+        onChange={onSearchChange}
+      />
+      {filteredPokemon && (
+        <ul>
+          {filteredPokemon.map((pokemon) => {
+            return (
+              <li onClick={() => handleClick(pokemon)}>
+                <img
+                  src={`https://raw.githubusercontent.com/ramclen/Poke-Server/master/${pokemon.image.thumbnail}`}
+                  width="15px"
+                />
+                {pokemon.name}
+              </li>
+            );
+          })}
+        </ul>
+      )}
+
+      {selectedPokemon && (
+        <div>
+          <h1>{selectedPokemon.name}</h1>
+          <p>{selectedPokemon.description}</p>
+
+          <div>
+            {selectedPokemon.type.map((type) => (
+              <>
+                <span>{type}</span>
+                <br />
+              </>
+            ))}
+          </div>
+          <br />
+
+          <div>
+            HP: {selectedPokemon.base.HP}
+            <br />
+            Attack: {selectedPokemon.base.Attack}
+            <br />
+            Defence: {selectedPokemon.base.Defense}
+            <br />
+            Sp Attack: {selectedPokemon.base["Sp. Attack"]}
+            <br />
+            Sp Defense: {selectedPokemon.base["Sp. Defense"]}
+            <br />
+            Speed: {selectedPokemon.base["Speed"]}
+            <br />
+          </div>
+
+          <div>
+            <img
+              src={`https://raw.githubusercontent.com/ramclen/Poke-Server/master/${selectedPokemon.image.image}`}
+            />
+          </div>
+        </div>
+      )}
     </div>
   );
 }
